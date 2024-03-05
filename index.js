@@ -1,7 +1,12 @@
 const Discord = require('discord.js');
+const Events = require('discord.js');
+const {token} = require('./config.json');
 const fs = require('node:fs');
+const readLastLine = require('read-last-line');
 
 const prefix = '!';
+//"201727741819748352"
+//"465638983418904586"
 let userID = "201727741819748352";
 
 
@@ -36,7 +41,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         let hour = date.getHours();
         let min = date.getMinutes();
         let seconds = date.getSeconds();
-        let time = JSON.stringify(`${hour},${min},${seconds}`);
+        let time = JSON.stringify(date.getTime(date));
 
         // Write the time to the file
         fs.writeFile('time.txt', time, err => {
@@ -57,7 +62,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
         let hour = date.getHours();
         let min = date.getMinutes();
         let seconds = date.getSeconds();
-        let newTime = `${hour},${min},${seconds}`;
+        let newTime = date.getTime(date);
         let oldTime;
 
         fs.readFile('time.txt', 'utf8',(err, data) => {
@@ -67,12 +72,13 @@ client.on('voiceStateUpdate', (oldState, newState) => {
             oldTime = JSON.parse(data);
 
             // Calculate total time
-            let newTimeArr = newTime.split(",");
-            let oldTimeArr = oldTime.split(",");
-            let timeInVC = `${newTimeArr[0] - oldTimeArr[0]}:${newTimeArr[1] - oldTimeArr[1]}:${newTimeArr[2] - oldTimeArr[2]}`;
+            //let newTimeArr = newTime.split(",");
+            //let oldTimeArr = oldTime.split(",");
+            let timeInVC = `${(newTime - oldTime) / 1000} seconds`;
+            let joinDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString()} EST`;
             console.log(`Total time spent in VC: ${timeInVC}`);
 
-            let timeData = `${date},${timeInVC}\n`;
+            let timeData = `\n${joinDate},${timeInVC}`;
 
             fs.writeFile('timeData.csv',timeData, {flag: 'a'}, err => {
                 if (err) {
@@ -88,4 +94,16 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
 })
 
-client.login("MTIwODkyMjQ1NDkzNjkxMTkwMg.GpXZm1.Yl5emEt76xsrxkawI30MtQUBC9Kl35Buk0n8fw");
+client.on("messageCreate", (message) => {
+    if (message.author.bot) return false;
+
+    if (message.content.includes("@here") || message.content.includes("@everyone") || message.type == "REPLY") return false;
+
+    if (message.mentions.has(client.user.id)) {
+        readLastLine.read('timeData.csv',1).then(function(lines) {
+            message.channel.send(lines);
+        });
+    }
+});
+
+client.login(token);
